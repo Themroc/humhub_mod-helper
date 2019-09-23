@@ -40,11 +40,9 @@ if (count($disable)) {
 		echo $d . '{display:none}' ."\n";
 	echo "</style>\n";
 }
-#error_log(sprintf("%s %s depends: %s\n", date('Y-m-d H:i:s'), __FILE__, var_export($depends, 1)), 3, '/var/tmp/php/dbg.log');
 $jdep= [];
 foreach ($depends as $k => $v)
 	$jdep[]= [ $k, $v ];
-#error_log(sprintf("%s %s jdep: %s\n", date('Y-m-d H:i:s'), __FILE__, var_export($jdep, 1)), 3, '/var/tmp/php/dbg.log');
 $this->registerJsConfig(['modhelper'=> ['dep'=> $jdep]]);
 
 if ($standAlone) {
@@ -96,26 +94,6 @@ if ($standAlone) {
 	echo '	</div>'."\n";
 	echo '</div>'."\n";
 }
-
-#error_log(sprintf("%s %s dep: '%s'\n", date('Y-m-d H:i:s'), __FILE__, var_export($dep, 1)), 3, '/var/tmp/php/dbg.log');
-/*
-if (count($dep)) {
-	echo "<script>\n";
-	foreach ($dep as $dk => $da) {
-		$type= @$vars[$dk]['form']['type'];
-		if (@$type=='radio')
-#			echo '$(".'.str_replace('_', '-', $mod['id']).'_config_'.$dk.'").on("change", function () {' . "\n";
-			echo '$("input[name=\'ConfigForm\\['.$dk.'\\]\']").on("change", function () {' . "\n";
-		else
-			echo '$("#configform-'.$dk.'").on("change", function () {' . "\n";
-		$jv= @$type=='checkbox' ? 'checked' : 'value';
-		foreach ($da as $d)
-			echo "\t" . '$(".field-configform-'.$d[1].'").css("display", this.'.$jv.'=='.$d[0].' ? "block" : "none");' . "\n";
-		echo '});' . "\n";
-	}
-	echo "</script>\n";
-}
-*/
 
 function getHtml ($var, $model, $indent= '') {
 	if ($var === null)
