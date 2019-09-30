@@ -71,7 +71,7 @@ Usually though, a bit more configuration will be needed. Like,
     		'some_text'=> [
     			'label'=> 'Some random text',
     			'hints'=> 'Type in whatever you like, it will be ignored anyway.',
-    			'form'=> [ 'depends'=> ['text_enable'=> 1] ],
+    			'form'=> ['depends'=> ['text_enable'=> 1]],
     		],
     	];
     }
@@ -96,6 +96,8 @@ __Author:__ Themroc <7hemroc@gmail.com>
 <https://github.com/Themroc/humhub_mod-helper/issues>
 
 ### ToDos
+- More formulas than just var=value should be possible in 'form'=> ['depends'=> [...]]
+- Decent documentation
 
 ### License
 
