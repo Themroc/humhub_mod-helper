@@ -18,7 +18,7 @@ The Controller:
     namespace ME\humhub\modules\MYMODULE\controllers;
     
     use Yii;
-    use themroc\humhub\modules\test\models\AdminForm;
+    use ME\humhub\modules\MYMODULE\models\AdminForm;
     
     class AdminController extends \humhub\modules\admin\components\Controller
     {
@@ -49,12 +49,20 @@ Usually though, a bit more configuration will be needed. Like,
     
     namespace ME\humhub\modules\MYMODULE\models;
     
+    use humhub\modules\ui\form\widgets\IconPicker;
+    
     class AdminModel extends \themroc\humhub\modules\modhelper\models\AdminForm
     {
+    	public $icon;
     	public $text_enable;
     	public $some_text;
     
     	protected $vars= [
+    		'icon'=> [
+    			'label'=> 'Select icon',
+    			'trans'=> 'UiModule.form',
+    			'form'=> ['type'=> 'widget', 'class'=> IconPicker::class],
+    		],
     		'text_enable'=> [
     			'label'=> 'Show useless text field',
     			'rules'=> ['in', 'range'=> [0, 1]],
@@ -68,8 +76,7 @@ Usually though, a bit more configuration will be needed. Like,
     	];
     }
 
-More examples can be found in https://github.com/Themroc/humhub_mail-in/blob/master/models/ConfigForm.php
-and https://github.com/Themroc/humhub_iframe/blob/master/models/AdminForm.php.
+More examples can be found in https://github.com/Themroc/humhub_iframe/blob/master/models/AdminForm.php.
 
 ### Installation
 
