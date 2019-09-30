@@ -64,6 +64,7 @@ Usually though, a bit more configuration will be needed. Like,
     			'form'=> ['type'=> 'widget', 'class'=> IconPicker::class],
     		],
     		'text_enable'=> [
+    			'prefix'=> '<div class="some-box">',
     			'label'=> 'Show useless text field',
     			'rules'=> ['in', 'range'=> [0, 1]],
     			'form'=> ['type'=> 'checkbox'],
@@ -72,6 +73,7 @@ Usually though, a bit more configuration will be needed. Like,
     			'label'=> 'Some random text',
     			'hints'=> 'Type in whatever you like, it will be ignored anyway.',
     			'form'=> ['depends'=> ['text_enable'=> 1]],
+    			'suffix'=> '</div>',
     		],
     	];
     }

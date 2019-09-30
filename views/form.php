@@ -58,22 +58,22 @@ echo '		<div class="form-group">'."\n";
 foreach ($vars as $k => $v) {
 	$vform= @$v['form'];
 	echo getHtml(@$vform['prefix'], $model, "\t\t\t");
-	$params= getParams(@$vform['params'], $model);
+	$options= getParams(@$vform['options'], $model);
 	switch (@$vform['type']) {
 		case 'checkbox':
-			echo "\t\t\t" . $aform->field($model, $k)->checkbox($params) . "\n";
+			echo "\t\t\t" . $aform->field($model, $k)->checkbox($options) . "\n";
 			break;
 		case 'dropdown':
-			echo "\t\t\t" . $aform->field($model, $k)->dropDownList($params) . "\n";
+			echo "\t\t\t" . $aform->field($model, $k)->dropDownList(getParams(@$vform['items'], $model), $options) . "\n";
 			break;
 		case 'radio':
-			echo "\t\t\t" . $aform->field($model, $k)->radioList($params) . "\n";
+			echo "\t\t\t" . $aform->field($model, $k)->radioList(getParams(@$vform['items'], $model), $options) . "\n";
 			break;
 		case 'textarea':
-			echo "\t\t\t" . $aform->field($model, $k)->textarea($params) . "\n";
+			echo "\t\t\t" . $aform->field($model, $k)->textarea($options) . "\n";
 			break;
 		case 'widget':
-			echo "\t\t\t" . $aform->field($model, $k)->widget($vform['class'], $params) . "\n";
+			echo "\t\t\t" . $aform->field($model, $k)->widget($vform['class'], $options) . "\n";
 			break;
 		default:
 			echo "\t\t\t" . $aform->field($model, $k) . "\n";
