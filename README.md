@@ -1,25 +1,24 @@
 ### Description
-Hassle remover for module developers.
-
-Takes care of config-forms. No more tedious creation of view-files needed.
-With it, a very simple model-file could look like
+Takes care of config-forms. No more tedious creation of view-files for
+that needed. Just give it your model and hints how your attributes should
+be presented. The simplest model-file could look like
 
     <?php
     namespace ME\humhub\modules\MYMODULE\models;
-    
+
     class AdminModel extends \themroc\humhub\modules\modhelper\models\AdminForm
     {
-    	public $some_text;
+        public $some_text;
     }
 
 The Controller:
 
     <?php
     namespace ME\humhub\modules\MYMODULE\controllers;
-    
+
     use Yii;
     use ME\humhub\modules\MYMODULE\models\AdminForm;
-    
+
     class AdminController extends \humhub\modules\admin\components\Controller
     {
     	public function actionIndex()
@@ -28,11 +27,11 @@ The Controller:
     			return $this->render('error', [
     				'msg'=> 'Please install and activate the <a href="https://github.com/Themroc/humhub_mod-helper" target="_blank">Mod-Helper plugin</a>.'
     			]);
-    
+
     		$model= new AdminForm();
     		if ($model->load(Yii::$app->request->post()) && $model->save())
     			$this->view->saved();
-    
+
     		return $this->render('@mod-helper/views/form', [
     			'model'=> $model
     		]);
@@ -46,17 +45,17 @@ table "setting".
 Usually though, a bit more configuration will be needed. Like,
 
     <?php
-    
+
     namespace ME\humhub\modules\MYMODULE\models;
-    
+
     use humhub\modules\ui\form\widgets\IconPicker;
-    
+
     class AdminModel extends \themroc\humhub\modules\modhelper\models\AdminForm
     {
     	public $icon;
     	public $text_enable;
     	public $some_text;
-    
+
     	protected $vars= [
     		'icon'=> [
     			'label'=> 'Select icon',
@@ -78,11 +77,14 @@ Usually though, a bit more configuration will be needed. Like,
     	];
     }
 
-More examples can be found in https://github.com/Themroc/humhub_iframe/blob/master/models/AdminForm.php.
+This will give you an icon picker and box containing a string field that
+can be hidden. Plus the usual "save"-button, of course.
+More examples can be found in
+https://github.com/Themroc/humhub_iframe/blob/master/models/AdminForm.php.
 
 ### Installation
 
-Add folder */protected/modules/mod-helper, unzip this into it and activate the
+Unzip this into */protected/modules/mod-helper and activate the
 module in Administration / Modules.
 
 __Module website:__ <https://github.com/Themroc/humhub_mod-helper>

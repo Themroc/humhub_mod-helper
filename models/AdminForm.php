@@ -10,11 +10,8 @@ use yii\base\Model;
  */
 class AdminForm extends Model
 {
-	protected $mod= [
-	];
-
-	protected $vars= [
-	];
+	protected $mod= [ ];
+	protected $vars= [ ];
 
 	public function __construct ($prefix= '', $config= [])
 	{
@@ -23,7 +20,7 @@ class AdminForm extends Model
 		return parent::__construct($config);
 	}
 
-	public function init()
+	public function init ()
 	{
 		if (! isset($this->mod['id']))
 			$this->mod['id']= Yii::$app->controller->module->id;
@@ -36,18 +33,20 @@ class AdminForm extends Model
 				join('', array_map(function ($i) { return ucfirst($i); }, preg_split('![_-]!', $this->mod['id'])))
 				. 'Module.base';
 
+		$v= method_exists($this, 'vars') ? $this->vars() : [];
 		foreach (array_keys($this->attributes) as $attr) {
-			if (! isset($this->vars[$attr]))
+			if (isset($v[$attr]))
+				$this->vars[$attr]= $v[$attr];
+			else if (! isset($this->vars[$attr]))
 				$this->vars[$attr]= [];
 		}
-
 		$this->loadSettings();
 	}
 
 	/**
 	 * @inheritdoc
 	 */
-	public function rules()
+	public function rules ()
 	{
 		$r= [];
 		foreach ($this->vars as $k => $v) {
@@ -72,7 +71,7 @@ class AdminForm extends Model
 	/**
 	 * @inheritdoc
 	 */
-	public function attributeLabels()
+	public function attributeLabels ()
 	{
 		$r= [];
 		foreach ($this->vars as $k => $v)
@@ -85,7 +84,7 @@ class AdminForm extends Model
 	/**
 	 * @inheritdoc
 	 */
-	public function attributeHints()
+	public function attributeHints ()
 	{
 		$r= [];
 		foreach ($this->vars as $k => $v)
@@ -98,11 +97,11 @@ class AdminForm extends Model
 	/**
 	 * @inheritdoc
 	 */
-	public function loadSettings()
+	public function loadSettings ()
 	{
-		foreach ($this->vars as $attr => $v)
-			if (null != $s= $this->mod['settings']->get($this->mod['prefix'].$attr))
-				$this->{$attr}= $s;
+		foreach ($this->vars as $k => $v)
+			if (null != $s= $this->mod['settings']->get($this->mod['prefix'].$k))
+				$this->{$k}= $s;
 
 		return true;
 	}
@@ -110,20 +109,25 @@ class AdminForm extends Model
 	/**
 	 * @inheritdoc
 	 */
-	public function save()
+	public function save ()
 	{
-		foreach ($this->vars as $attr => $v)
-			$this->mod['settings']->set($this->mod['prefix'].$attr, trim($this->{$attr}));
+		foreach ($this->vars as $k => $v) {
+			$opt= @$v['options'];
+			if (! @$opt['nosave']) {
+				$val= @$opt['notrim'] ? $this->{$k} : trim($this->{$k});
+				$this->mod['settings']->set($this->mod['prefix'].$k, $val);
+			}
+		}
 
 		return $this->loadSettings();
 	}
 
-	public function getVars($key= null)
+	public function getVars ($key= null)
 	{
 		return $key===null ? $this->vars : $this->vars[$key];
 	}
 
-	public function getMod($key= null)
+	public function getMod ($key= null)
 	{
 		return $key===null ? $this->mod : $this->mod[$key];
 	}

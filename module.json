@@ -1,10 +1,10 @@
 {
     "id": "mod-helper",
     "name": "Mod-helper",
-    "description": "Hassle remover for module developers.",
+    "description": "Takes care of config-forms. No more tedious creation of view-files for that needed.",
     "keywords": [
     ],
-    "version": "0.1",
+    "version": "0.2",
     "humhub": {
         "minVersion": "1.2"
     },
