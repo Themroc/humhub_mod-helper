@@ -39,6 +39,12 @@ class AdminForm extends Model
 				$this->vars[$attr]= $v[$attr];
 			else if (! isset($this->vars[$attr]))
 				$this->vars[$attr]= [];
+
+			$va= &$this->vars[$attr];
+			if (empty($va['form']))
+				$va['form']= [];
+			if (empty($va['trans']))
+				$va['trans']= $this->mod['trans'];
 		}
 		$this->loadSettings();
 	}
@@ -75,8 +81,7 @@ class AdminForm extends Model
 	{
 		$r= [];
 		foreach ($this->vars as $k => $v)
-			if (isset($v['label']))
-				$r[$k]= Yii::t(isset($v['trans']) ? $v['trans'] : $this->mod['trans'], $v['label']);
+			$r[$k]= Yii::t($v['trans'], isset($v['label']) ? $v['label'] : ucfirst($k));
 
 		return $r;
 	}
@@ -89,7 +94,7 @@ class AdminForm extends Model
 		$r= [];
 		foreach ($this->vars as $k => $v)
 			if (isset($v['hints']))
-				$r[$k]= Yii::t(@$v['trans'] ? $v['trans'] : $this->mod['trans'], $v['hints']);
+				$r[$k]= Yii::t($v['trans'], $v['hints']);
 
 		return $r;
 	}

@@ -12,20 +12,23 @@ if (!isset($standAlone))
 
 $fname= 'AdminForm';
 
-$vars= $model->getVars();
 $mod= $model->getMod();
+$vars= $model->getVars();
 $mform= isset($mod['form']) ? $mod['form'] : [];
+$vv= [ &$mod, &$vars, &$model ];
 
 // collect dependencies
 $depends= [];
 $disable= [];
 foreach ($vars as $k => $v) {
-	if (null === @$v['form']['depends'])
+	if (!empty($v['form']))
+		$vis= va(vDefault($v['form'], 'visible', 'depends'));
+	if (empty($vis))
 		continue;
 
 	$off= 0;
-	foreach ($v['form']['depends'] as $dk => $dv) {
-		list ($type, $src)= getSrc($dk, $vars, $fname);
+	foreach ($vis as $dk => $dv) {
+		list ($type, $src)= getSrc($vv, $dk, $fname);
 		$jo= @$type=='checkbox' ? 'checked' : 'value';
 		$target= '.field-'.strtolower($fname).'-'.$k;
 		addDep($depends, $src, [$jo, $dv, $target]);
@@ -38,24 +41,23 @@ foreach ($vars as $k => $v) {
 // hide disabled fields
 if (count($disable)) {
 	echo "<style>\n";
-	foreach ($disable as $d)
-		echo $d . '{display:none}' ."\n";
+	echo implode(',', $disable) . '{display:none}' ."\n";
 	echo "</style>\n";
 }
 
 // collect funcs
 $code= '';
 foreach ($vars as $k => $v) {
-	if (null === @$v['function'])
+	if (empty($v['function']))
 		continue;
 
 	$dep= [];
-	foreach (@$v['function']['depends'] as $d) {
-		list ($type, $src)= getSrc($d, $vars, $fname);
+	foreach (va($v['function']['depends']) as $d) {
+		list ($type, $src)= getSrc($vv, $d, $fname);
 		addDep($depends, $src, ['func', $k, '#'.strtolower($fname).'-'.$k]);
 		$dep['@'.$d.'@']= $src;
 	}
-	$c= $v['function']['code'];
+	$c= va($v['function']['code']);
 	foreach ($dep as $dk => $dv)
 		$c= preg_replace('/'.preg_quote($dk).'/', $dv, $c);
 	$code.= ",\n\"".$k.'":function(p){'.$c.'}';
@@ -70,51 +72,58 @@ foreach ($depends as $k => $v)
 	$jdep[]= [ $k, $v ];
 $this->registerJsConfig(['modhelper'=> ['dep'=> $jdep]]);
 
-
+$ind= "";
 if ($standAlone) {
 	echo '<div class="panel panel-default">'."\n";
-	echo '	<div class="panel-heading"><strong>'.$mod['name'].'</strong> ' . Yii::t($mod['trans'], 'module configuration') . '</div>'."\n";
+	echo '	<div class="panel-heading"><strong>'.$mod['name'].'</strong> '
+		. Yii::t('ModHelperModule.base', 'module configuration')
+		. '</div>'."\n";
 	echo '	<div class="panel-body">'."\n";
+	$ind= "\t\t";
 }
+$ind2= $ind . "\t";
 
 $aform= ActiveForm::begin(['id' => 'configure-form']);
 
-echo '		<div class="form-group">'."\n";
+echo $ind.'<div class="form-group">'."\n";
 
 foreach ($vars as $k => $v) {
-	$vform= @$v['form'];
-	echo getHtml(@$v['prefix'], $model, "\t\t\t");
-	$options= getParams(@$vform['options'], $model);
+	$vform= !empty($v['form']) ? $v['form'] : null;
+	echo vs(vDefault2($vform, $v, 'prefix'), [$model], $ind2, "\n");
+	$options= !empty($vform['options']) ? va(@$vform['options'], [$model]) : [];
 	if (empty($model[$k]) && !empty($v['default']))
-		$model[$k]= getParams($v['default'], $model);
-	switch (@$vform['type']) {
+		$model[$k]= va($v['default'], [$model]);
+	$type= !empty($vform['type']) ? $vform['type'] : '';
+	switch ($type) {
 		case 'checkbox':
-			echo "\t\t\t" . $aform->field($model, $k)->checkbox($options) . "\n";
+			echo $ind2 . $aform->field($model, $k)->checkbox($options) . "\n";
 			break;
 		case 'dropdown':
-			echo "\t\t\t" . $aform->field($model, $k)->dropDownList(getParams(@$vform['items'], $model), $options) . "\n";
+			echo $ind2 . $aform->field($model, $k)->dropDownList(vaTrans($vv, $vform['items'], [$model], $k), $options) . "\n";
 			break;
 		case 'radio':
-			echo "\t\t\t" . $aform->field($model, $k)->radioList(getParams(@$vform['items'], $model), $options) . "\n";
+			echo $ind2 . $aform->field($model, $k)->radioList(vaTrans($vv, $vform['items'], [$model], $k), $options) . "\n";
 			break;
 		case 'textarea':
-			echo "\t\t\t" . $aform->field($model, $k)->textarea($options) . "\n";
+			echo $ind2 . $aform->field($model, $k)->textarea($options) . "\n";
 			break;
 		case 'widget':
-			echo "\t\t\t" . $aform->field($model, $k)->widget($vform['class'], $options) . "\n";
+			echo $ind2 . $aform->field($model, $k)->widget($vform['class'], $options) . "\n";
 			break;
 		default:
-			echo "\t\t\t" . $aform->field($model, $k)->input("text", $options) . "\n";
+			echo $ind2 . $aform->field($model, $k)->input("text", $options) . "\n";
 	}
-	echo getHtml(@$v['suffix'], $model, "\t\t\t");
+	echo vs(vDefault2($vform, $v, 'suffix'), [$model], $ind2, "\n");
 }
-echo '		</div>'."\n";
+echo $ind2 . '</div>'."\n";
 
-echo '		<div class="form-group">'."\n";
-echo			getHtml(@$mform['btn_pre'], $model, "\t\t\t");
-echo '			' . Html::saveButton()."\n";
-echo			getHtml(@$mform['btn_post'], $model, "\t\t\t");
-echo '		</div>'."\n";
+echo $ind2 . '<div class="form-group">'."\n";
+if (!empty($mform['btn_pre']))
+	echo	vs($mform['btn_pre'], [$model], $ind2, "\n");
+echo $ind2."\t".Html::saveButton()."\n";
+if (!empty($mform['btn_post']))
+	echo	vs($mform['btn_post'], [$model], $ind2, "\n");
+echo $ind2 . '</div>'."\n";
 
 ActiveForm::end();
 
@@ -123,27 +132,100 @@ if ($standAlone) {
 	echo '</div>'."\n";
 }
 
-function getHtml ($var, $model, $indent= '') {
-	if ($var === null)
+/**
+ * vDefault Returns $default if $var is empty, $var otherwise
+ */
+function vDefault ($a= null, $istd= null, $idef= null) {
+	if (empty($a))
+		return null;
+
+	if (!empty($a[$istd]))
+		return $a[$istd];
+
+	return !empty($a[$idef])
+		? $a[$idef]
+		: null;
+}
+
+/**
+ * vDefault2 Returns $default if $var is empty, $var otherwise
+ */
+function vDefault2 ($astd= null, $adef= null, $idx= null) {
+	if (empty($idx))
+		return null;
+	if (!empty($astd) && !empty($astd[$idx]))
+		return  $astd[$idx];
+	if (!empty($adef) && !empty($adef[$idx]))
+		return $adef[$idx];
+
+	return null;
+}
+
+/**
+ * vAsArray Converts $var to array. An empty one if $var is empty, $var if it
+ * is already an array and a one from a string-split otherwise. In the latter
+ * case, the 1st char is taken as separator.
+ */
+function vAsArray ($var) {
+	if (empty($var))
+		return [];
+
+	if (is_array($var))
+		return $var;
+
+	return explode(substr($var, 0, 1), substr($var, 1));
+}
+
+/**
+ * vS Returns the return value if $var some kind of function, $var otherwise.
+ */
+function vc ($var, $params= null) {
+	if (empty($var))
 		return '';
 
 	if (is_callable($var))
-		return $indent . call_user_func_array($var, [$model]);
-
-	return $indent . $var;
-}
-
-function getParams ($var, $model) {
-	if ($var === null)
-		return [];
-
-	if (is_callable($var))
-		return call_user_func_array($var, [$model]);
+		return call_user_func_array($var, $params);
 
 	return $var;
 }
 
-function getSrc ($var, $vars, $fname) {
+/**
+ * vS Returns the return value if $var some kind of function, $var otherwise.
+ * In both cases the return value is prepended by $pre and appended by $post.
+ */
+function vs ($var, $params= null, $pre= '', $post= '') {
+	if (empty($var))
+		return '';
+
+	return $pre . vc($var, $params) . $post;
+}
+
+
+/**
+ * va Returns a potentially callable $var as array.
+ */
+function va ($var, $params= null) {
+	return vAsArray(vc($var, $params));
+}
+
+/**
+ * vATrans Returns a potentially callable $var as array with each element translated.
+ */
+function vaTrans ($vv, $var, $params, $attrib) {
+	list($mod, $vars, $model)= $vv;
+
+	$r= [];
+	$va= !empty($vars[$attrib]) ? $vars[$attrib] : null;
+	$c= vDefault2($va, $mod, 'trans');
+	foreach (va($var, $params) as $k => $v)
+		$r[$k]= Yii::t($c, $v);
+
+	return $r;
+}
+
+function getSrc ($vv, $var, $fname) {
+	list($mod, $vars)= $vv;
+
 	$type= @$vars[$var]['form']['type'];
 	if (@$type=='radio')
 		$src= 'input[name="'.$fname.'\\['.$var.'\\]"]';
