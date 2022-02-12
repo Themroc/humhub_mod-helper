@@ -6,10 +6,6 @@ use yii\helpers\Html as yHtml;
 
 themroc\humhub\modules\modhelper\assets\Assets::register($this);
 
-// is single page, not a tab
-if (!isset($standAlone))
-	$standAlone= 1;
-
 $fname= 'AdminForm';
 
 $mod= $model->getMod();
@@ -17,10 +13,14 @@ $vars= $model->getVars();
 $mform= isset($mod['form']) ? $mod['form'] : [];
 $vv= [ &$mod, &$vars, &$model ];
 
+if (! isset($isTabbed))
+	$isTabbed= isset($standAlone) ? !$standAlone : 0;
+
 // collect dependencies
 $depends= [];
 $disable= [];
 foreach ($vars as $k => $v) {
+	$vis= '';
 	if (!empty($v['form']))
 		$vis= va(vDefault($v['form'], 'visible', 'depends'));
 	if (empty($vis))
@@ -62,18 +62,18 @@ foreach ($vars as $k => $v) {
 		$c= preg_replace('/'.preg_quote($dk).'/', $dv, $c);
 	$code.= ",\n\"".$k.'":function(p){'.$c.'}';
 }
-echo "<script>\nvar modhelper_func={\n";
-echo substr($code, 2)."\n";
-echo "};\n</script>\n";
+if (!empty($code))
+	echo "<script>\nvar modhelper_func={\n".substr($code, 2)."\n};\n</script>\n";
 
 // pass dependencies to js
 $jdep= [];
 foreach ($depends as $k => $v)
 	$jdep[]= [ $k, $v ];
 $this->registerJsConfig(['modhelper'=> ['dep'=> $jdep]]);
+echo "<script>\nif (typeof humhub.modules.modhelper!=='undefined') humhub.modules.modhelper.run()\n</script>\n";
 
 $ind= "";
-if ($standAlone) {
+if (! $isTabbed) {
 	echo '<div class="panel panel-default">'."\n";
 	echo '	<div class="panel-heading"><strong>'.$mod['name'].'</strong> '
 		. Yii::t('ModHelperModule.base', 'module configuration')
@@ -110,6 +110,9 @@ foreach ($vars as $k => $v) {
 		case 'widget':
 			echo $ind2 . $aform->field($model, $k)->widget($vform['class'], $options) . "\n";
 			break;
+		case "hidden":
+		        echo $ind2 . $aform->field($model, $k, ['labelOptions'=> ['style'=> 'display:none']])->hiddenInput($options) . "\n";
+		        break;
 		default:
 			echo $ind2 . $aform->field($model, $k)->input("text", $options) . "\n";
 	}
@@ -121,13 +124,15 @@ echo $ind2 . '<div class="form-group">'."\n";
 if (!empty($mform['btn_pre']))
 	echo	vs($mform['btn_pre'], [$model], $ind2, "\n");
 echo $ind2."\t".Html::saveButton()."\n";
+if ('' != $del= $model->getDeleteBtn())
+    echo $ind2.$del."\n";
 if (!empty($mform['btn_post']))
 	echo	vs($mform['btn_post'], [$model], $ind2, "\n");
 echo $ind2 . '</div>'."\n";
 
 ActiveForm::end();
 
-if ($standAlone) {
+if (! $isTabbed) {
 	echo '	</div>'."\n";
 	echo '</div>'."\n";
 }
