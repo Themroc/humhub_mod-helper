@@ -1,6 +1,9 @@
 humhub.module('modhelper', function(module, require, $) {
 	var init= function () {
-//		console.log('modhelper module activated');
+		this.run();
+	}
+
+	var run= function () {
 		var d= this.config.dep;
 		for (var x=0; x<d.length; x++) {
 			var src= $(d[x][0]);
@@ -13,7 +16,6 @@ humhub.module('modhelper', function(module, require, $) {
 
 	var change= function (src) {
 		var tests= jQuery.data(src, "modhelper.tests");
-
 		for (var x=0; x<tests.length; x++) {
 			var t= tests[x];
 			if (t[0] == "checked") {
@@ -24,11 +26,11 @@ humhub.module('modhelper', function(module, require, $) {
 				$(t[2]).val(v);
 			}
 		}
-
 	};
 
 	module.export({
 		init: init,
+		run: run,
 		change: change
 	});
 });
