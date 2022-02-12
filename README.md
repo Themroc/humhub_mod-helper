@@ -8,33 +8,44 @@ should be presented. The simplest model-file could look like
 
 	class AdminModel extends \themroc\humhub\modules\modhelper\models\AdminForm
 	{
+		const MH_API= 1;
+
 		public $some_text;
 	}
 
 The Controller:
 
 	<?php
+
 	namespace ME\humhub\modules\MYMODULE\controllers;
 
 	use Yii;
+	use humhub\modules\admin\components\Controller;
+	use themroc\humhub\modules\modhelper\behaviors\MhAdminController;
 	use ME\humhub\modules\MYMODULE\models\AdminForm;
 
-	class AdminController extends \humhub\modules\admin\components\Controller
+	class AdminController extends Controller
 	{
-		public function actionIndex()
+		public $adminOnly= true;
+		public $isTabbed= true;
+		public $modelClass= AdminForm::class;
+
+		public function init ()
 		{
-			if (Yii::$app->getModule('mod-helper')===null)
+			if (null != Yii::$app->getModule('mod-helper'))
+				$this->attachBehavior('MhAdmin', new MhAdminController());
+
+			return parent::init();
+		}
+
+		public function actionIndex ()
+		{
+			if (null == Yii::$app->getModule('mod-helper'))
 				return $this->render('error', [
-					'msg'=> 'Please install and activate the <a href="https://github.com/Themroc/humhub_mod-helper" target="_blank">Mod-Helper plugin</a>.'
+					'msg'=> 'Please install and activate the <a href="https://github.com/Themroc/humhub_mod-helper" target="_blank">Mod-Helper plugin</a>.',
 				]);
 
-			$model= new AdminForm();
-			if ($model->load(Yii::$app->request->post()) && $model->save())
-				$this->view->saved();
-
-			return $this->render('@mod-helper/views/form', [
-				'model'=> $model
-			]);
+			return $this->MHactionIndex();
 		}
 	}
 
@@ -52,6 +63,8 @@ Usually though, a bit more configuration will be needed. Like,
 
 	class AdminModel extends \themroc\humhub\modules\modhelper\models\AdminForm
 	{
+		const MH_API= 1;
+
 		public $icon;
 		public $text_enable;
 		public $some_text;
