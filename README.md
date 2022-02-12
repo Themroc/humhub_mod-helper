@@ -3,83 +3,83 @@ Takes care of config-forms. No more tedious creation of view-files
 needed. Just give it your model and a few hints on how your attributes
 should be presented. The simplest model-file could look like
 
-    <?php
-    namespace ME\humhub\modules\MYMODULE\models;
+	<?php
+	namespace ME\humhub\modules\MYMODULE\models;
 
-    class AdminModel extends \themroc\humhub\modules\modhelper\models\AdminForm
-    {
-        public $some_text;
-    }
+	class AdminModel extends \themroc\humhub\modules\modhelper\models\AdminForm
+	{
+		public $some_text;
+	}
 
 The Controller:
 
-    <?php
-    namespace ME\humhub\modules\MYMODULE\controllers;
+	<?php
+	namespace ME\humhub\modules\MYMODULE\controllers;
 
-    use Yii;
-    use ME\humhub\modules\MYMODULE\models\AdminForm;
+	use Yii;
+	use ME\humhub\modules\MYMODULE\models\AdminForm;
 
-    class AdminController extends \humhub\modules\admin\components\Controller
-    {
-    	public function actionIndex()
-    	{
-    		if (Yii::$app->getModule('mod-helper')===null)
-    			return $this->render('error', [
-    				'msg'=> 'Please install and activate the <a href="https://github.com/Themroc/humhub_mod-helper" target="_blank">Mod-Helper plugin</a>.'
-    			]);
+	class AdminController extends \humhub\modules\admin\components\Controller
+	{
+		public function actionIndex()
+		{
+			if (Yii::$app->getModule('mod-helper')===null)
+				return $this->render('error', [
+					'msg'=> 'Please install and activate the <a href="https://github.com/Themroc/humhub_mod-helper" target="_blank">Mod-Helper plugin</a>.'
+				]);
 
-    		$model= new AdminForm();
-    		if ($model->load(Yii::$app->request->post()) && $model->save())
-    			$this->view->saved();
+			$model= new AdminForm();
+			if ($model->load(Yii::$app->request->post()) && $model->save())
+				$this->view->saved();
 
-    		return $this->render('@mod-helper/views/form', [
-    			'model'=> $model
-    		]);
-    	}
-    }
+			return $this->render('@mod-helper/views/form', [
+				'model'=> $model
+			]);
+		}
+	}
 
-In that case, you get a configure-form with one string field labeled "Some Text"
-and a "save"-button. When clicked, the content of $some_text will be saved in
-table "setting".
+In that case, a configure-form with one string field labeled "Some Text"
+and a "save"-button will be rendered. When clicked, the content of
+$some_text will be saved in table "setting".
 
 Usually though, a bit more configuration will be needed. Like,
 
-    <?php
+	<?php
 
-    namespace ME\humhub\modules\MYMODULE\models;
+	namespace ME\humhub\modules\MYMODULE\models;
 
-    use humhub\modules\ui\form\widgets\IconPicker;
+	use humhub\modules\ui\form\widgets\IconPicker;
 
-    class AdminModel extends \themroc\humhub\modules\modhelper\models\AdminForm
-    {
-    	public $icon;
-    	public $text_enable;
-    	public $some_text;
+	class AdminModel extends \themroc\humhub\modules\modhelper\models\AdminForm
+	{
+		public $icon;
+		public $text_enable;
+		public $some_text;
 
-    	protected $vars= [
-    		'icon'=> [
-    			'label'=> 'Select icon',
-    			'trans'=> 'UiModule.form',
-    			'form'=> ['type'=> 'widget', 'class'=> IconPicker::class],
-    		],
-    		'text_enable'=> [
-    			'prefix'=> '<div class="some-box">',
-    			'label'=> 'Show useless text field',
-    			'rules'=> ['in', 'range'=> [0, 1]],
-    			'form'=> ['type'=> 'checkbox'],
-    		],
-    		'some_text'=> [
-    			'label'=> 'Some random text',
-    			'hints'=> 'Type in whatever you like, it will be ignored anyway.',
-    			'form'=> ['visible'=> ['text_enable'=> 1]],
-    			'suffix'=> '</div>',
-    		],
-    	];
-    }
+		protected $vars= [
+			'icon'=> [
+				'label'=> 'Select icon',
+				'trans'=> 'UiModule.form',
+				'form'=> ['type'=> 'widget', 'class'=> IconPicker::class],
+			],
+			'text_enable'=> [
+				'prefix'=> '<div class="some-box">',
+				'label'=> 'Show useless text field',
+				'rules'=> ['in', 'range'=> [0, 1]],
+				'form'=> ['type'=> 'checkbox'],
+			],
+			'some_text'=> [
+				'label'=> 'Some random text',
+				'hints'=> 'Type in whatever you like, it will be ignored anyway.',
+				'form'=> ['visible'=> ['text_enable'=> 1]],
+				'suffix'=> '</div>',
+			],
+		];
+	}
 
-This will give you an icon picker and box containing a string field that
-can be hidden. Plus the usual "save"-button, of course.
-More examples can be found in https://github.com/Themroc/humhub_iframe/blob/master/models/AdminForm.php.
+This will give an icon picker and box containing a string field that can
+be hidden. Plus the usual "save"-button, of course. More examples can be
+found in https://github.com/Themroc/humhub_iframe/blob/master/models/AdminForm.php.
 
 Possible config options are:
 
@@ -90,6 +90,13 @@ Possible config options are:
 		'name'=>			string	If unset, = ucfirst(mod['id'])
 		'trans'=>			string	Translation category. If unset, derived from mod['id'].
 							See https://docs.humhub.org/docs/develop/i18n/
+
+		'options'=> [
+			'tab_attr'=>		string	Attribute name whose content selects a tab
+			'tab_sort'=>		mixed	If string: Attribute name whose content determines tab order
+							If callable: `function ($tab_list)` returns sorted tab list
+		],
+
 		'form'=> [
 			'btn_pre'=>		string	Will be emitted verbatim before the "save" button code
 			'btn_post'=>		string	Will be emitted verbatim after the "save" button code
@@ -98,18 +105,23 @@ Possible config options are:
 
 	$model->vars[
 		'attribute_name'=> [
-			'default'=>		string	This will be used if model data is empty
 			'rules'=>		array	Ex. ['in', 'range'=> [0, 1]]
 							See https://www.yiiframework.com/doc/api/2.0/yii-base-model#rules()-detail
-			'trans'=>		string	Translation category. If unset, taken from mod['trans'].
 			'label'=>		string	If unset, will be derived from attribute name.
 							See https://www.yiiframework.com/doc/api/2.0/yii-base-model#attributeLabels()-detail
 			'hints'=>		string	Explanatory text.
 							See https://www.yiiframework.com/doc/api/2.0/yii-base-model#attributeHints()-detail
+			'trans'=>		string	Translation category. If unset, taken from mod['trans'].
+			'default'=>		string	This will show up if attribute content is empty
+
+			'options'=> [
+				'nosave'=>	number	If !=0, attribute content will not be stored in db
+				'notrim'=>	number	If !=0, attribute content will not be trimmed prior to saving
+			],
 
 			'form'=> [
-				'type'=>	string	One of 'checkbox', 'dropdown', 'radio', 'textarea', 'widget' or 'text' (the default)
-				'class'=>	class	yii widget class if type='widget'
+				'type'=>	string	One of 'checkbox', 'dropdown', 'radio', 'textarea', 'widget', 'hidden' or 'text' (the default)
+				'class'=>	class	yii widget class if type=='widget'
 							See https://www.yiiframework.com/doc/api/2.0/yii-widgets-activefield#widget()-detail
 				'items'=>	array	Item list for dropdown or radio. Can be either a string like ".Label 1.Another label"
 							an array like [ 0=> 'Label 1', 1=> 'Another label' ] or some reference to a function
@@ -138,9 +150,14 @@ Possible config options are:
 		];
 	];
 
-All strings and arrays can also be a callable. If a string is given
+All strings and arrays in `vars` can also be a callable. If a string is given
 where an array is expected, it will be split using the first character as
 separator.
+
+`mod` and `vars` can also be supplied by `protected function`s that
+should return an array like above. If those arrays are already present,
+elements of them will get overridden by the corresponding element from
+the function.
 
 ### Installation
 
