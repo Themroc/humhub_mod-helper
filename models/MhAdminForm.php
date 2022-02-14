@@ -17,6 +17,12 @@ class MhAdminForm extends Model
 	protected $mod= [ ];
 	protected $vars= [ ];
 
+	protected $radio_tpl;
+	protected $func_tpl;
+
+	/**
+	 * @inheritdoc
+	 */
 	public function __construct ($prefix= '', $config= [])
 	{
 		$mod= &$this->mod;
@@ -75,6 +81,9 @@ class MhAdminForm extends Model
 		return parent::__construct($config);
 	}
 
+	/**
+	 * @inheritdoc
+	 */
 	public function init ()
 	{
 		$this->loadSettings();
@@ -179,27 +188,21 @@ class MhAdminForm extends Model
 		return $this->loadSettings();
 	}
 
-	public function chk_opt ($cfg, $opt)
-	{
-		return (isset($cfg['options']) && isset($cfg['options'][$opt]))
-			? $cfg['options'][$opt]
-			: null;
-	}
-
 	public function getDeleteBtn ()
 	{
 		$mod= $this->mod;
-		if (isset($mod['ctr']->isTabbed)) {
-			$ta= $mod['options']['tab_attr'];
-			if (strlen($this->{$ta}))
-				return Html::a(
-					Yii::t('ModHelperModule.base', 'Delete'),
-					$mod['_']->getUrl('admin', ['tab'=> $this->{$ta}, 'delete'=> '1']),
-					['class' => 'btn btn-danger pull-right', 'style'=>'margin-right:10px']
-				);
-		}
+		if (! isset($mod['ctr']->isTabbed))
+			return '';
 
-		return '';
+		$ta= $mod['options']['tab_attr'];
+		if (! strlen($this->{$ta}))
+			return '';
+
+		return Html::a(
+			Yii::t('ModHelperModule.base', 'Delete'),
+			$mod['_']->getUrl('admin', ['tab'=> $this->{$ta}, 'delete'=> '1']),
+			['class' => 'btn btn-danger pull-right', 'style'=>'margin-right:10px']
+		);
 	}
 
 	public function getVars ($key= null)
@@ -212,10 +215,183 @@ class MhAdminForm extends Model
 		return $key===null ? $this->mod : $this->mod[$key];
 	}
 
-	public function getTrans ($attr)
+	/**
+	 * vDefault Returns $default if $var is empty, $var otherwise
+	 */
+	public function vDefault ($a= null, $istd= null, $idef= null)
 	{
-		$v= $this->vars[$attr];
+		if (!isset($a))
+			return null;
+
+		if (isset($a[$istd]))
+			return $a[$istd];
+
+		return isset($a[$idef]) ? $a[$idef] : null;
+	}
+
+	/**
+	 * vDefault2 Returns $default if $var is empty, $var otherwise
+	 */
+	public function vDefault2 ($astd= null, $adef= null, $idx= null)
+	{
+		if (!isset($idx))
+			return null;
+
+		if (isset($astd) && isset($astd[$idx]))
+			return $astd[$idx];
+
+		if (isset($adef) && isset($adef[$idx]))
+			return $adef[$idx];
+
+		return null;
+	}
+
+	/**
+	 * vAsArray Converts $var to array. An empty one if $var is empty, $var if it
+	 * is already an array and a one from a string-split otherwise. In the latter
+	 * case, the 1st char is taken as separator.
+	 */
+	public function vAsArray ($var)
+	{
+		if (empty($var))
+			return [];
+
+		if (is_array($var))
+			return $var;
+
+		return explode(substr($var, 0, 1), substr($var, 1));
+	}
+
+	/**
+	 * vc Returns the return value if $var some kind of function, $var otherwise.
+	 */
+	public function vc ($var)
+	{
+		if (empty($var))
+			return '';
+
+		if (is_callable($var))
+			return call_user_func($var, $this);
+
+		return $var;
+	}
+
+	/**
+	 * vs Returns the return value if $var some kind of function, $var otherwise.
+	 * In both cases the return value is prepended by $pre and appended by $post.
+	 */
+	public function vs ($var, $pre= '', $post= '')
+	{
+		if (empty($var))
+			return '';
+
+		return $pre . $this->vc($var) . $post;
+	}
+
+	/**
+	 * va Returns a potentially callable $var as array.
+	 */
+	public function va ($var)
+	{
+		return $this->vAsArray($this->vc($var));
+	}
+
+	/**
+	 * vATrans Returns a potentially callable $var as array with each element translated.
+	 */
+	public function vaTrans ($var, $attrib)
+	{
+		$r= [];
+		$c= $this->getTrans($attrib);
+		foreach ($this->va($var) as $k => $v)
+			$r[$k]= Yii::t($c, $v);
+
+		return $r;
+	}
+
+	public function collectViewVars ($field_tpl, $radio_tpl, $func_tpl)
+	{
+		$this->radio_tpl= $radio_tpl;
+		$this->func_tpl= $func_tpl;
+
+		// collect dependencies
+		$depends= [];
+		$disable= [];
+		foreach ($this->vars as $k => $v) {
+			$vis= '';
+			if (!empty($v['form']))
+				$vis= $this->va($this->vDefault($v['form'], 'visible', 'depends'));
+			if (empty($vis))
+				continue;
+
+			$off= 0;
+			foreach ($vis as $dk => $dv) {
+				list ($type, $src)= $this->getJsName($dk);
+				$jo= @$type=='checkbox' ? 'checked' : 'value';
+				$target= sprintf($field_tpl, $k);
+				$this->addDep($depends, $src, [$jo, $dv, $target]);
+				if ($this->{$dk} != $dv)
+					$off= 1;
+			}
+			if ($off)
+				$disable[]= $target;
+		}
+
+		// collect funcs
+		$code= '';
+		foreach ($this->vars as $k => $v) {
+			if (empty($v['function']))
+				continue;
+
+			$dep= [];
+			foreach ($this->va($v['function']['depends']) as $d) {
+				list ($type, $src)= $this->getJsName($d);
+				$this->addDep($depends, $src, ['func', $k, sprintf($func_tpl, $k)]);
+				$dep['@'.$d.'@']= $src;
+			}
+			$c= $this->va($v['function']['code']);
+			foreach ($dep as $dk => $dv)
+				$c= preg_replace('/'.preg_quote($dk).'/', $dv, $c);
+			$code.= ",\n\"".$k.'":function(p){'.$c.'}';
+		}
+
+		return [$depends, $disable, substr($code, 2)];
+	}
+
+	protected function getJsName ($var)
+	{
+		$type= @$this->vars[$var]['form']['type'];
+		if (@$type=='radio')
+			$src= sprintf($this->radio_tpl, $var);
+		else
+			$src= sprintf($this->func_tpl, $var);
+
+		return [$type, $src];
+	}
+
+	protected function addDep (&$dep, $index, $data)
+	{
+		if (isset($dep[$index]))
+			$dep[$index][]= $data;
+		else
+			$dep[$index]= [ $data ];
+	}
+
+	protected function chk_opt ($cfg, $opt)
+	{
+		return (isset($cfg['options']) && isset($cfg['options'][$opt]))
+			? $cfg['options'][$opt]
+			: null;
+	}
+
+	/**
+	 * getTrans Returns translation category for attribute $attr_name.
+	 */
+	protected function getTrans ($attr_name)
+	{
+		$v= $this->vars[$attr_name];
 
 		return isset($v['trans']) ? $v['trans'] : $this->mod['trans'];
 	}
+
 }
