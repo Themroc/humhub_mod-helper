@@ -87,13 +87,13 @@ foreach ($vars as $k => $v) {
 echo $ind2 . '</div>'."\n";
 
 echo $ind2 . '<div class="form-group">'."\n";
-if (!empty($mform['btn_pre']))
-	echo vs($mform['btn_pre'], $ind2, "\n");
+if (isset($mform['btn_pre']))
+	echo $model->vs($mform['btn_pre'], $ind2, "\n");
 echo $ind2."\t".Html::saveButton()."\n";
 if ('' != $del= $model->getDeleteBtn())
 	echo $ind2.$del."\n";
-if (!empty($mform['btn_post']))
-	echo vs($mform['btn_post'], $ind2, "\n");
+if (isset($mform['btn_post']))
+	echo $model->vs($mform['btn_post'], $ind2, "\n");
 echo $ind2 . '</div>'."\n";
 
 ActiveForm::end();

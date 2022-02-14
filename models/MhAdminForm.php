@@ -251,9 +251,9 @@ class MhAdminForm extends Model
 	 * is already an array and a one from a string-split otherwise. In the latter
 	 * case, the 1st char is taken as separator.
 	 */
-	public function vAsArray ($var)
+	public function vAsArray ($var= null)
 	{
-		if (empty($var))
+		if (!isset($var))
 			return [];
 
 		if (is_array($var))
@@ -265,10 +265,10 @@ class MhAdminForm extends Model
 	/**
 	 * vc Returns the return value if $var some kind of function, $var otherwise.
 	 */
-	public function vc ($var)
+	public function vc ($var= null)
 	{
-		if (empty($var))
-			return '';
+		if (!isset($var))
+			return null;
 
 		if (is_callable($var))
 			return call_user_func($var, $this);
@@ -280,9 +280,9 @@ class MhAdminForm extends Model
 	 * vs Returns the return value if $var some kind of function, $var otherwise.
 	 * In both cases the return value is prepended by $pre and appended by $post.
 	 */
-	public function vs ($var, $pre= '', $post= '')
+	public function vs ($var= null, $pre= '', $post= '')
 	{
-		if (empty($var))
+		if (!isset($var))
 			return '';
 
 		return $pre . $this->vc($var) . $post;
@@ -291,7 +291,7 @@ class MhAdminForm extends Model
 	/**
 	 * va Returns a potentially callable $var as array.
 	 */
-	public function va ($var)
+	public function va ($var= null)
 	{
 		return $this->vAsArray($this->vc($var));
 	}
@@ -299,7 +299,7 @@ class MhAdminForm extends Model
 	/**
 	 * vATrans Returns a potentially callable $var as array with each element translated.
 	 */
-	public function vaTrans ($var, $attrib)
+	public function vaTrans ($var= null, $attrib)
 	{
 		$r= [];
 		$c= $this->getTrans($attrib);
