@@ -28,7 +28,7 @@ class MhAdminController extends Behavior
 		if (defined("$cl::MH_API"))
 			    $this->api= $cl::MH_API;
 		if ($this->api > static::MH_MAX_API)
-			return $that->render('error', [
+			return $that->render('@mod-helper/views/error', [
 				'msg'=> 'API mismatch. Please install the latest version of the <a href="https://github.com/Themroc/humhub_mod-helper" target="_blank">Mod-Helper plugin</a>.',
 			]);
 
