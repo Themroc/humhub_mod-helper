@@ -76,7 +76,7 @@ foreach ($vars as $k => $v) {
 		case 'widget':
 			echo $ind2 . $aform->field($model, $k)->widget($vform['class'], $options) . "\n";
 			break;
-		case "hidden":
+		case 'hidden':
 			echo $ind2 . $aform->field($model, $k, ['labelOptions'=> ['style'=> 'display:none']])->hiddenInput($options) . "\n";
 			break;
 		default:

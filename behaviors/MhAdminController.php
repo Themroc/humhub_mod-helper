@@ -19,17 +19,17 @@ class MhAdminController extends Behavior
 	 *
 	 * @return string
 	 */
-	public function MHactionIndex ($widget)
+	public function MHactionIndex ($modelClass, $widget= null)
 	{
 		$this->widget= $widget;
 		$that= $this->owner;
 
-		$cl= $that->modelClass;
-		if (defined("$cl::MH_API"))
-			    $this->api= $cl::MH_API;
+		if (defined("$modelClass::MH_API"))
+				$this->api= $modelClass::MH_API;
 		if ($this->api > static::MH_MAX_API)
 			return $that->render('@mod-helper/views/error', [
-				'msg'=> 'API mismatch. Please install the latest version of the <a href="https://github.com/Themroc/humhub_mod-helper" target="_blank">Mod-Helper plugin</a>.',
+				'msg'=> 'API mismatch. Please install the latest version of the'
+					.' <a href="https://github.com/Themroc/humhub_mod-helper" target="_blank">Mod-Helper plugin</a>.',
 			]);
 
 		$mdu= $that->module;
@@ -43,7 +43,7 @@ class MhAdminController extends Behavior
 		$pfx= empty($tab) ? '' : $tab.'/';
 
 		if ($that->request->get('delete') == 1) {
-			$model= $this->model= new $that->modelClass($pfx, ['mh_ctr'=> $that]);
+			$model= $this->model= new $modelClass($pfx, ['mh_ctr'=> $that]);
 			foreach (array_keys($model->getVars()) as $v)
 				$mdu->settings->delete($tab.'/'.$v);
 			if ($that->isTabbed) {
@@ -57,7 +57,7 @@ class MhAdminController extends Behavior
 			return $that->redirect($mdu->getUrl('admin'));
 		}
 
-		$model= $this->model= new $that->modelClass($pfx, ['mh_ctr'=> $that]);
+		$model= $this->model= new $modelClass($pfx, ['mh_ctr'=> $that]);
 		if ($model->load($that->request->post()) && $model->save()) {
 			$that->view->saved();
 
@@ -77,9 +77,9 @@ class MhAdminController extends Behavior
 
 	public function getModel ()
 	{
-	    return $this->model;
+		return $this->model;
 	}
-	
+
 	public function getWidget ()
 	{
 		return $this->widget;

@@ -45,9 +45,9 @@ class Module extends \humhub\components\Module
 		// keep track of new api usage per module
 #		$this->settings->set('o/fget/'.$mdu->id, time());
 
-#		if (null == $frames= $module->settings->get('//tabs'))	// Use this eventually
-		if (null == $tabs= $mdu->settings->get('/frames'))
-			return [];
+		if ('' == $tabs= $mdu->settings->get('//tabs'))
+			if ('' == $tabs= $mdu->settings->get('/frames'))
+				return [];
 
 		return preg_split('!\s*/\s*!', $tabs);
 	}
