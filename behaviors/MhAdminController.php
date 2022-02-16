@@ -58,7 +58,7 @@ class MhAdminController extends Behavior
 		}
 
 		$model= $this->model= new $modelClass($pfx, ['mh_ctr'=> $that]);
-		if ($model->load($that->request->post()) && $model->save()) {
+		if ($model->load($that->request->post()) && $model->validate() && $model->save()) {
 			$that->view->saved();
 
 			return $that->redirect($mdu->getUrl('admin'));

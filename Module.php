@@ -15,6 +15,36 @@ class Module extends \humhub\components\Module
 		parent::disable();
 	}
 
+	public function doSort ($mdl, $set, $srch, $tabs)
+	{
+		if (is_callable($srch)) {
+			if (is_array($srch) || is_object($srch))
+				return $srch($mdl, $tabs);		// closures and class methods
+
+			if (!is_array($srch)) {
+				$r= new \ReflectionFunction($srch);
+				if ($r->isUserDefined()) {
+					// TODO: Determine if the function was actually defined by our client.
+					// Otherwise, it should be treated as string
+					return $srch($mdl, $tabs);	// user defined functions
+				}
+			}
+		}
+
+		// $srch should be string or array - TODO: test for object?
+		if (!is_array($srch))
+			$srch= [$srch];
+		$fs= [];
+		foreach ($tabs as $attr) {
+			$fs[$attr]= '';
+			foreach ($srch as $s)
+				$fs[$attr].= $set->get($attr.'/'.$s);
+		}
+		asort($fs);
+
+		return array_keys($fs);
+	}
+
 	public function saveTab ($mdl, $tab)
 	{
 		$mod= $mdl->mod;
@@ -22,21 +52,11 @@ class Module extends \humhub\components\Module
 
 		$tabs= $this->getTabs($mod['_']);
 		if (array_search($tab, $tabs) === false)
-		    $tabs[]= $tab;
-		if (isset($mod['options']['tab_sort'])) {
-			$s= $mod['options']['tab_sort'];
-			if (is_callable($s))
-				$tabs= $s($mdl, $tabs);
-			else {
-				$fs= [];
-				foreach ($tabs as $f)
-					$fs[$f]= $mod['settings']->get($f.'/'.$s);
-				asort($fs);
-				$tabs= array_keys($fs);
-			}
-		}
-
+			$tabs[]= $tab;
+		if (isset($mod['options']['tab_sort']))
+			$tabs= $this->doSort($mdl, $mod['settings'], $mod['options']['tab_sort'], $tabs);
 		$this->setTabs($mod['_'], $tabs);
+
 		return;
 	}
 

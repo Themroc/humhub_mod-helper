@@ -59,6 +59,11 @@ class MhAdminForm extends Model
 				$va['options']= [];
 			if (! isset($va['form']))
 				$va['form']= [];
+			if (! isset($va['rules']))
+				$va['rules']= [['safe']];
+			else
+				if (! is_array($va['rules']))
+					$va['rules']= [$va['rules']];
 		}
 
 		$m= method_exists($this, 'mod') ? $this->mod() : [];
@@ -70,13 +75,21 @@ class MhAdminForm extends Model
 		if (! isset($mod['form']))
 			$mod['form']= [];
 
-		if (isset($mod['ctr']->isTabbed) && !isset($mod['options']['tab_attr']))
-			$mod['options']['tab_attr']= '_mh_tab_';
-		$vars['_mh_tab_']= [
-			'label'=> '',
-			'form'=> ['type'=> 'hidden', 'options'=> ['style'=> 'display:none']],
-			'options'=> ['nosave'=> 1]
-		];
+		$vars['_mh_tab_']['form']['type']= 'hidden';
+		$vars['_mh_tab_']['form']['options']= ['nosave'=> 1];
+#		'form'=> ['type'=> 'hidden', 'options'=> ['style'=> 'display:none']],
+		if (isset($mod['ctr']->isTabbed)) {
+			if (! isset($mod['options']['tab_attr']))
+				$mod['options']['tab_attr']= '_mh_tab_';
+			else
+				unset($vars['_mh_tab_']['rules']);
+			$ta= $mod['options']['tab_attr'];
+			$ra= &$vars[$ta]['rules'];
+			if (! is_array($ra))
+				$ra= [$ra];
+			$ra[]= ['required'];
+			$ra[]= ['match', 'pattern'=> '|^[^/]+$|', 'message'=> 'Must not contain a /'];
+		}
 
 		return parent::__construct($config);
 	}
@@ -89,6 +102,15 @@ class MhAdminForm extends Model
 		$this->loadSettings();
 	}
 
+	protected function addRule ($attr, $array)
+	{
+		$aobj= new \ArrayObject($array);
+		$acopy= $aobj->getArrayCopy();
+		array_unshift($acopy, $attr);
+
+		return $acopy;
+	}
+
 	/**
 	 * @inheritdoc
 	 */
@@ -96,19 +118,17 @@ class MhAdminForm extends Model
 	{
 		$r= [];
 		foreach ($this->vars as $k => $v) {
-			$a= [ $k ];
-			if (! isset($v['rules']))
-				$a[]= 'string';
+			if (empty($v['rules']))
+				continue;
+
+			if (! is_array($v['rules'][0]))
+				$r[]= $this->addRule($k, $v['rules']);
 			else
-			if (is_array($v['rules']))
 				foreach ($v['rules'] as $rk => $rv)
-					if (is_int($rk))
-						$a[]= $rv;
+					if (! is_array($rv))
+						$r[]= [$k, $rv];
 					else
-						$a[$rk]= $rv;
-			else
-				$a[]= $v['rules'];
-			$r[]= $a;
+						$r[]= $this->addRule($k, $rv);
 		}
 
 		return $r;
@@ -177,12 +197,12 @@ class MhAdminForm extends Model
 			if (! $this->chk_opt($v, 'nosave')) {
 				$val= $this->chk_opt($v, 'notrim') ? $this->{$k} : trim($this->{$k});
 				if (isset($val) && $val !== "")
-					$set->set($pfx.$k, $val);
+				    $set->set(strtolower($pfx.$k), $val);
 			}
 
 		if ($ta) {
 			if (! isset($mod['options']['_tvlast']) || $mod['options']['_tvlast'] != $this->{$ta})
-				$mod['mh']->saveTab($this, $this->{$ta});
+				$mod['mh']->saveTab($this, strtolower($this->{$ta}));
 		}
 
 		return $this->loadSettings();
@@ -220,7 +240,7 @@ class MhAdminForm extends Model
 	 */
 	public function vDefault ($a= null, $istd= null, $idef= null)
 	{
-		if (!isset($a))
+		if (! isset($a))
 			return null;
 
 		if (isset($a[$istd]))
@@ -234,7 +254,7 @@ class MhAdminForm extends Model
 	 */
 	public function vDefault2 ($astd= null, $adef= null, $idx= null)
 	{
-		if (!isset($idx))
+		if (! isset($idx))
 			return null;
 
 		if (isset($astd) && isset($astd[$idx]))
@@ -253,7 +273,7 @@ class MhAdminForm extends Model
 	 */
 	public function vAsArray ($var= null)
 	{
-		if (!isset($var))
+		if (! isset($var))
 			return [];
 
 		if (is_array($var))
@@ -267,7 +287,7 @@ class MhAdminForm extends Model
 	 */
 	public function vc ($var= null)
 	{
-		if (!isset($var))
+		if (! isset($var))
 			return null;
 
 		if (is_callable($var))
@@ -282,7 +302,7 @@ class MhAdminForm extends Model
 	 */
 	public function vs ($var= null, $pre= '', $post= '')
 	{
-		if (!isset($var))
+		if (! isset($var))
 			return '';
 
 		return $pre . $this->vc($var) . $post;
@@ -319,7 +339,7 @@ class MhAdminForm extends Model
 		$disable= [];
 		foreach ($this->vars as $k => $v) {
 			$vis= '';
-			if (!empty($v['form']))
+			if (! empty($v['form']))
 				$vis= $this->va($this->vDefault($v['form'], 'visible', 'depends'));
 			if (empty($vis))
 				continue;
@@ -393,5 +413,4 @@ class MhAdminForm extends Model
 
 		return isset($v['trans']) ? $v['trans'] : $this->mod['trans'];
 	}
-
 }
