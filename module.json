@@ -1,12 +1,12 @@
 {
-    "id": "mod-helper",
-    "name": "Mod-helper",
-    "description": "Takes care of config-forms. No more tedious creation of view-files needed.",
-    "keywords": [
-    ],
-    "version": "0.2.2",
-    "humhub": {
-        "minVersion": "1.2"
-    },
-    "screenshots": ["assets/screen1.jpg"]
+	"id": "mod-helper",
+	"name": "Mod-helper",
+	"description": "Takes care of config-forms. No more tedious creation of view-files needed.",
+	"keywords": [
+	],
+	"version": "0.2.3",
+	"humhub": {
+		"minVersion": "1.2"
+	},
+	"screenshots": ["assets/screen1.jpg"]
 }
