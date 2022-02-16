@@ -6,7 +6,8 @@ use yii\helpers\Html as yHtml;
 
 themroc\humhub\modules\modhelper\assets\Assets::register($this);
 
-$fname= 'AdminForm';
+$a= explode('\\', get_class($model));
+$fname= array_pop($a);
 $fname_lc= strtolower($fname);
 
 $mod= $model->getMod();
