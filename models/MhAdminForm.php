@@ -6,7 +6,6 @@ use Yii;
 use yii\base\Model;
 use \yii\db\ActiveRecord;
 use humhub\libs\Html;
-
 /**
  * AdminForm handles the configurable fields.
  */
@@ -20,7 +19,7 @@ class MhAdminForm extends Model
 	protected $radio_tpl;
 	protected $func_tpl;
 
-	/**
+    /**
 	 * @inheritdoc
 	 */
 	public function __construct ($prefix= '', $config= [])
@@ -33,13 +32,15 @@ class MhAdminForm extends Model
 		$mod['_']= $mdu= $ctr->module;
 		$mod['ctr']= $ctr;
 		$mod['mdl']= $this;
+		$mod['cvar']= $ctr->getBehavior('MhAdmin') ? $ctr : $this;
+		$mod['cfg']= $mod['cvar']->getCfg();
+
 		$mod['tab']= preg_replace('|/$|', '', $prefix);
 		$mod['prefix']= $mod['tab']!=='' ? $mod['tab'].'/' : '';
 		if (! isset($mod['id']))
 			$mod['id']= $mdu->id;
 		if (! isset($mod['name']))
 			$mod['name']= ucfirst($mod['id']);
-		$mod['settings']= $mdu->settings;
 		if (! isset($mod['trans']))
 			$mod['trans']= join(
 				'',
@@ -48,7 +49,9 @@ class MhAdminForm extends Model
 			. 'Module.base';
 
 		$v= method_exists($this, 'vars') ? $this->vars() : [];
-		foreach (array_keys($this->attributes) as $attr) {
+#		$keys= array_unique(array_merge(array_keys($v), array_keys($vars), array_keys($this->attributes)));
+		$keys= array_unique(array_merge(array_keys($v), array_keys($vars)));
+		foreach ($keys as $attr) {
 			if (isset($v[$attr]))
 				$vars[$attr]= $v[$attr];
 			else if (! isset($vars[$attr]))
@@ -76,9 +79,9 @@ class MhAdminForm extends Model
 			$mod['form']= [];
 
 		$vars['_mh_tab_']['form']['type']= 'hidden';
-		$vars['_mh_tab_']['form']['options']= ['nosave'=> 1];
+		$vars['_mh_tab_']['options']['nosave']= 1;
 #		'form'=> ['type'=> 'hidden', 'options'=> ['style'=> 'display:none']],
-		if (isset($mod['ctr']->isTabbed)) {
+		if ($mod['cfg']['isTabbed']) {
 			if (! isset($mod['options']['tab_attr']))
 				$mod['options']['tab_attr']= '_mh_tab_';
 			else
@@ -88,10 +91,64 @@ class MhAdminForm extends Model
 			if (! is_array($ra))
 				$ra= [$ra];
 			$ra[]= ['required'];
-			$ra[]= ['match', 'pattern'=> '|^[^/]+$|', 'message'=> 'Must not contain a /'];
-		}
+			$ra[]= [
+				'match',
+				'pattern'=> '|^[^/]+$|',
+				'message'=> Yii::t('ModHelperModule.base', 'Must not contain a /')
+			];
+		} else
+			unset($vars['_mh_tab_']['rules']);
 
 		return parent::__construct($config);
+	}
+
+	/**
+	 * Old API
+	 */
+	public function getCfg ()
+	{
+		$cfg= [
+			'api'=> 0,
+			'isTabbed'=> 0,
+			'isContainer'=> 0,
+		];
+		$mod= $this->mod;
+		$ctr= $mod['ctr'];
+
+		if (isset($ctr->isTabbed))
+			$cfg['isTabbed']= $ctr->isTabbed ? 1 : 0;
+		else
+		if (isset($ctr->standAlone))
+			$cfg['isTabbed']= $ctr->standAlone ? 0 : 1;
+
+		if (isset($ctr->contentContainer))
+			$cfg['isContainer']= 1;
+
+		return $cfg;
+	}
+
+	/**
+	 * Old API
+	 */
+	public function getConfVar ($var)
+	{
+		return $this->mod['_']->settings->get($var);
+	}
+
+	/**
+	 * Old API
+	 */
+	public function setConfVar ($var, $value)
+	{
+		$this->mod['_']->settings->set($var, $value);
+	}
+
+	/**
+	 * Old API
+	 */
+	public function deleteConfVar ($var)
+	{
+		$this->mod['_']->settings->delete($var);
 	}
 
 	/**
@@ -118,7 +175,7 @@ class MhAdminForm extends Model
 	{
 		$r= [];
 		foreach ($this->vars as $k => $v) {
-			if (empty($v['rules']))
+			if (! property_exists($this, $k) || empty($v['rules']))
 				continue;
 
 			if (! is_array($v['rules'][0]))
@@ -141,7 +198,8 @@ class MhAdminForm extends Model
 	{
 		$r= [];
 		foreach ($this->vars as $k => $v)
-			$r[$k]= Yii::t($this->getTrans($k), isset($v['label']) ? $v['label'] : ucfirst($k));
+			if (property_exists($this, $k))
+				$r[$k]= Yii::t($this->getTrans($k), isset($v['label']) ? $v['label'] : str_replace('_', ' ', ucfirst($k)));
 
 		return $r;
 	}
@@ -153,7 +211,7 @@ class MhAdminForm extends Model
 	{
 		$r= [];
 		foreach ($this->vars as $k => $v)
-			if (isset($v['hints']))
+			if (property_exists($this, $k) && isset($v['hints']))
 				$r[$k]= Yii::t($this->getTrans($k), $v['hints']);
 
 		return $r;
@@ -166,12 +224,14 @@ class MhAdminForm extends Model
 	{
 		$mod= $this->mod;
 		foreach ($this->vars as $k => $v) {
+			if (! property_exists($this, $k))
+				continue;
 			$this->{$k}= '';
-			if (null != $s= $mod['settings']->get($mod['prefix'].$k))
+			if (null != $s= $mod['cvar']->getConfVar($mod['prefix'].$k))
 				$this->{$k}= $s;
 		}
 
-		if (isset($mod['ctr']->isTabbed))
+		if ($mod['cfg']['isTabbed'])
 			$mod['options']['_tvlast']= $this->{$mod['options']['tab_attr']};
 
 		return true;
@@ -183,9 +243,9 @@ class MhAdminForm extends Model
 	public function save ()
 	{
 		$mod= $this->mod;
-		$set= $mod['settings'];
+#		$set= $mod['settings'];
 		$pfx= $mod['prefix'];
-		$ta= isset($mod['ctr']->isTabbed) ? $mod['options']['tab_attr'] : '';
+		$ta= $mod['cfg']['isTabbed'] ? $mod['options']['tab_attr'] : '';
 
 		if ($ta) {
 			if (! $this->chk_opt($this->vars[$ta], 'notrim'))
@@ -194,10 +254,10 @@ class MhAdminForm extends Model
 		}
 
 		foreach ($this->vars as $k => $v)
-			if (! $this->chk_opt($v, 'nosave')) {
+			if (property_exists($this, $k) && ! $this->chk_opt($v, 'nosave')) {
 				$val= $this->chk_opt($v, 'notrim') ? $this->{$k} : trim($this->{$k});
 				if (isset($val) && $val !== "")
-				    $set->set(strtolower($pfx.$k), $val);
+					$mod['cvar']->setConfVar(strtolower($pfx.$k), $val);
 			}
 
 		if ($ta) {
@@ -211,7 +271,7 @@ class MhAdminForm extends Model
 	public function getDeleteBtn ()
 	{
 		$mod= $this->mod;
-		if (! isset($mod['ctr']->isTabbed))
+		if (! $mod['cfg']['isTabbed'])
 			return '';
 
 		$ta= $mod['options']['tab_attr'];
@@ -233,6 +293,23 @@ class MhAdminForm extends Model
 	public function getMod ($key= null)
 	{
 		return $key===null ? $this->mod : $this->mod[$key];
+	}
+
+	/**
+	 * vDeep Returns value from nested array
+	 */
+	public function vDeep ($array= null, $idx1= null, $idx2= null)
+	{
+		if (! isset($array))
+			return null;
+
+		if (! isset($array[$idx1]))
+			return null;
+
+		if (! isset($array[$idx1][$idx2]))
+			return null;
+
+		return $array[$idx1][$idx2];
 	}
 
 	/**
@@ -329,6 +406,10 @@ class MhAdminForm extends Model
 		return $r;
 	}
 
+	function empty ($v) {
+		return ! (isset($v) && $v!=="");
+	}
+
 	public function collectViewVars ($field_tpl, $radio_tpl, $func_tpl)
 	{
 		$this->radio_tpl= $radio_tpl;
@@ -338,6 +419,11 @@ class MhAdminForm extends Model
 		$depends= [];
 		$disable= [];
 		foreach ($this->vars as $k => $v) {
+			if (! property_exists($this, $k))
+				continue;
+			if ($this->empty($this[$k]) && isset($v['default']))
+				$this[$k]= $this->vs($v['default']);
+
 			$vis= '';
 			if (! empty($v['form']))
 				$vis= $this->va($this->vDefault($v['form'], 'visible', 'depends'));
@@ -360,7 +446,7 @@ class MhAdminForm extends Model
 		// collect funcs
 		$code= '';
 		foreach ($this->vars as $k => $v) {
-			if (empty($v['function']))
+			if (! property_exists($this, $k) || empty($v['function']))
 				continue;
 
 			$dep= [];
@@ -369,7 +455,7 @@ class MhAdminForm extends Model
 				$this->addDep($depends, $src, ['func', $k, sprintf($func_tpl, $k)]);
 				$dep['@'.$d.'@']= $src;
 			}
-			$c= $this->va($v['function']['code']);
+			$c= $this->vs($v['function']['code']);
 			foreach ($dep as $dk => $dv)
 				$c= preg_replace('/'.preg_quote($dk).'/', $dv, $c);
 			$code.= ",\n\"".$k.'":function(p){'.$c.'}';

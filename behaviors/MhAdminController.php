@@ -3,15 +3,20 @@
 namespace themroc\humhub\modules\modhelper\behaviors;
 
 use Yii;
+use yii\helpers\Url;
 use yii\base\Behavior;
-#use themroc\humhub\modules\modhelper\models\AdminForm;
 
 class MhAdminController extends Behavior
 {
 	const MH_MAX_API= 1;
 
-	public $api= 0;
+	public $cfg= [
+		'api'=> 1,
+		'isTabbed'=> 0,
+		'isContainer'=> 0,
+	];
 	public $model;
+	public $module;
 	public $widget;
 
 	/**
@@ -25,17 +30,27 @@ class MhAdminController extends Behavior
 		$that= $this->owner;
 
 		if (defined("$modelClass::MH_API"))
-				$this->api= $modelClass::MH_API;
-		if ($this->api > static::MH_MAX_API)
+			$this->cfg['api']= $modelClass::MH_API;
+		if ($this->cfg['api'] > static::MH_MAX_API)
 			return $that->render('@mod-helper/views/error', [
 				'msg'=> 'API mismatch. Please install the latest version of the'
 					.' <a href="https://github.com/Themroc/humhub_mod-helper" target="_blank">Mod-Helper plugin</a>.',
 			]);
 
-		$mdu= $that->module;
-		$that->subLayout= isset($that->subLayoutOvr) ? $that->subLayoutOvr : '@mod-helper/views/subLayout';
+		if (isset($that->isContainer))
+			$this->cfg['isContainer']= $that->isContainer ? 1 : 0;
+		if (isset($that->isTabbed))
+			$this->cfg['isTabbed']= $that->isTabbed ? 1 : 0;
+
+		$mdu= $this->module= $this->cfg['isContainer'] ? $that->contentContainer : $that->module;
+		$that->subLayout= isset($that->subLayoutOvr)
+			? $that->subLayoutOvr
+			: $this->cfg['isContainer']
+				? '@humhub/modules/space/views/space/_layout'
+				: '@mod-helper/views/subLayout';
+
 		$tab= null;
-		if ($that->isTabbed) {
+		if ($this->cfg['isTabbed']) {
 			$req= $that->request;
 			if ('' == $tab= $req->get('tab'))
 				$tab= $req->get('frame');
@@ -46,7 +61,7 @@ class MhAdminController extends Behavior
 			$model= $this->model= new $modelClass($pfx, ['mh_ctr'=> $that]);
 			foreach (array_keys($model->getVars()) as $v)
 				$mdu->settings->delete($tab.'/'.$v);
-			if ($that->isTabbed) {
+			if ($this->cfg['isTabbed']) {
 				$tabs= $model->mod['mh']->getTabs($mdu);
 				if (false !== $k= array_search($tab, $tabs)) {
 					unset($tabs[$k]);
@@ -54,25 +69,37 @@ class MhAdminController extends Behavior
 				}
 			}
 
-			return $that->redirect($mdu->getUrl('admin'));
+			return $this->goHome();
 		}
 
 		$model= $this->model= new $modelClass($pfx, ['mh_ctr'=> $that]);
 		if ($model->load($that->request->post()) && $model->validate() && $model->save()) {
 			$that->view->saved();
 
-			return $that->redirect($mdu->getUrl('admin'));
+			return $this->goHome();
 		}
 
 		return $that->render('@mod-helper/views/form', [
+			'api'=> $this->cfg['api'],
+			'isTabbed'=> $this->cfg['isTabbed'],
 			'model'=> $model,
-			'isTabbed'=> $that->isTabbed,
 		]);
 	}
 
-	public function getApi ()
+	public function goHome ()
 	{
-		return $this->api;
+		$that= $this->owner;
+		$mdu= $this->module;
+
+		return $that->redirect($this->cfg['isContainer']
+			? $mdu->createUrl($that->homeUrl)
+			: Url::to($that->request->url)
+		);
+	}
+
+	public function getCfg ()
+	{
+		return $this->cfg;
 	}
 
 	public function getModel ()
@@ -83,5 +110,34 @@ class MhAdminController extends Behavior
 	public function getWidget ()
 	{
 		return $this->widget;
+	}
+
+	public function getConfVar ($var)
+	{
+		$that= $this->owner;
+
+		return $this->cfg['isContainer']
+			? $this->module->getSetting($var, $that->id)
+			: $this->module->settings->get($var);
+	}
+
+	public function setConfVar ($var, $value)
+	{
+		$that= $this->owner;
+
+		if ($this->cfg['isContainer'])
+			$this->module->setSetting($var, $value, $that->id);
+		else
+			$this->module->settings->set($var, $value);
+	}
+
+	public function deleteConfVar ($var)
+	{
+		$that= $this->owner;
+
+		if ($this->cfg['isContainer'])
+			Yii::$app->getModule($that->id)->settings->contentContainer($this->module)->delete($var);
+		else
+			$this->module->settings->delete($var, $value);
 	}
 }

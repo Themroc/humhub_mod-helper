@@ -118,7 +118,9 @@ Possible config options are:
 
 	$model->vars[
 		'attribute_name'=> [
-			'rules'=>		array	Ex. ['in', 'range'=> [0, 1]]
+			'rules'=>		mixed	A single string like 'number' will give a ['number']-rule.
+							A single array will be passed as is.
+							A nested array gives multiple rules. Ex. [ ['required'], ['in', 'range'=> [0, 1]] ]
 							See https://www.yiiframework.com/doc/api/2.0/yii-base-model#rules()-detail
 			'label'=>		string	If unset, will be derived from attribute name.
 							See https://www.yiiframework.com/doc/api/2.0/yii-base-model#attributeLabels()-detail

@@ -6,19 +6,26 @@ use yii\helpers\Html as yHtml;
 
 themroc\humhub\modules\modhelper\assets\Assets::register($this);
 
-$a= explode('\\', get_class($model));
+$m= $model;
+$a= explode('\\', get_class($m)); #'
 $fname= array_pop($a);
 $fname_lc= strtolower($fname);
 
-$mod= $model->getMod();
-$vars= $model->getVars();
+$mod= $m->getMod();
+$vars= $m->getVars();
 $mform= isset($mod['form']) ? $mod['form'] : [];
 
+if (! isset($api))
+	$api= 0;
 if (! isset($isTabbed))
 	$isTabbed= isset($standAlone) ? !$standAlone : 0;
+if (! isset($isContainer))
+	$isContainer= isset($this->context->contentContainer) ? 1 : 0;
+
+$show_header= (! $isTabbed && $api<1) || $isContainer ? 1 : 0;
 
 list($depends, $disable, $code)=
-	$model->collectViewVars(
+	$m->collectViewVars(
 		'.field-'.$fname_lc.'-%s',          // target:field
 		'input[name="'.$fname.'\\[%s\\]"]', // src:radio
 		'#'.$fname_lc.'-%s',                // src:other / func
@@ -29,7 +36,7 @@ if (count($disable))
 	echo "<style>\n".join(",", $disable)."{display:none}\n</style>\n";
 
 if (!empty($code))
-	echo "<script>\nvar modhelper_func={\n".substr($code, 2)."\n};\n</script>\n";
+	echo "<script>\nvar modhelper_func={\n".$code."\n};\n</script>\n";
 
 // pass dependencies to js
 $jdep= [];
@@ -40,14 +47,14 @@ $this->registerJsConfig(['modhelper'=> ['dep'=> $jdep]]);
 echo "<script>\nif (typeof humhub.modules.modhelper!=='undefined') humhub.modules.modhelper.run()\n</script>\n";
 
 $ind= "";
-if (! $isTabbed) {
-	echo '<div class="panel panel-default">'."\n";
-	echo '	<div class="panel-heading"><strong>'.$mod['name'].'</strong> '
+echo '<div class="panel panel-default">'."\n";
+if ($show_header)
+	echo "\t".'<div class="panel-heading"><strong>'.$mod['name'].'</strong> '
 		. Yii::t('ModHelperModule.base', 'module configuration')
 		. '</div>'."\n";
-	echo '	<div class="panel-body">'."\n";
-	$ind= "\t\t";
-}
+echo '	<div class="panel-body">'."\n";
+$ind= "\t\t";
+
 $ind2= $ind . "\t";
 
 $aform= ActiveForm::begin(['id' => 'configure-form']);
@@ -56,50 +63,49 @@ echo $ind.'<div class="form-group">'."\n";
 
 foreach ($vars as $k => $v) {
 	$vform= isset($v['form']) ? $v['form'] : [];
-	$options= isset($vform['options']) ? $model->va(@$vform['options']) : [];
-	echo $model->vs($model->vDefault2($vform, $v, 'prefix'), $ind2, "\n");
-	if (empty($model[$k]) && !empty($v['default']))
-		$model[$k]= $model->va($v['default']);
-	$type= !empty($vform['type']) ? $vform['type'] : '';
+	$options= isset($vform['options']) ? $m->va(@$vform['options']) : [];
+	echo $m->vs($m->vDefault2($vform, $v, 'prefix'), $ind2, "\n");
+	$type= isset($vform['type']) ? $vform['type'] : (property_exists($m, $k) ? '' : 'help');
 	switch ($type) {
 		case 'checkbox':
-			echo $ind2 . $aform->field($model, $k)->checkbox($options) . "\n";
+			echo $ind2 . $aform->field($m, $k)->checkbox($options) . "\n";
 			break;
 		case 'dropdown':
-		    echo $ind2 . $aform->field($model, $k)->dropDownList($model->vaTrans($vform['items'], $k), $options) . "\n";
+			echo $ind2 . $aform->field($m, $k)->dropDownList($m->vaTrans($m->vDefault($vform, 'items', 'params'), $k), $options) . "\n";
 			break;
 		case 'radio':
-		    echo $ind2 . $aform->field($model, $k)->radioList($model->vaTrans($vform['items'], $k), $options) . "\n";
+			echo $ind2 . $aform->field($m, $k)->radioList($m->vaTrans($m->vDefault($vform, 'items', 'params'), $k), $options) . "\n";
 			break;
 		case 'textarea':
-			echo $ind2 . $aform->field($model, $k)->textarea($options) . "\n";
+			echo $ind2 . $aform->field($m, $k)->textarea($options) . "\n";
 			break;
 		case 'widget':
-			echo $ind2 . $aform->field($model, $k)->widget($vform['class'], $options) . "\n";
+			echo $ind2 . $aform->field($m, $k)->widget($vform['class'], $options) . "\n";
 			break;
 		case 'hidden':
-			echo $ind2 . $aform->field($model, $k, ['labelOptions'=> ['style'=> 'display:none']])->hiddenInput($options) . "\n";
+			echo $ind2 . $aform->field($m, $k, ['labelOptions'=> ['style'=> 'display:none']])->hiddenInput($options) . "\n";
+			break;
+		case 'help':
+			echo $ind2 . '<div class="help-block">' . Yii::t($mod['trans'], $v['hints']) . "</div>\n";
 			break;
 		default:
-			echo $ind2 . $aform->field($model, $k)->input("text", $options) . "\n";
+			echo $ind2 . $aform->field($m, $k)->input("text", $options) . "\n";
 	}
-	echo $model->vs($model->vDefault2($vform, $v, 'suffix'), $ind2, "\n");
+	echo $m->vs($m->vDefault2($vform, $v, 'suffix'), $ind2, "\n");
 }
 echo $ind2 . '</div>'."\n";
 
 echo $ind2 . '<div class="form-group">'."\n";
 if (isset($mform['btn_pre']))
-	echo $model->vs($mform['btn_pre'], $ind2, "\n");
+	echo $m->vs($mform['btn_pre'], $ind2, "\n");
 echo $ind2."\t".Html::saveButton()."\n";
-if ('' != $del= $model->getDeleteBtn())
+if ('' != $del= $m->getDeleteBtn())
 	echo $ind2.$del."\n";
 if (isset($mform['btn_post']))
-	echo $model->vs($mform['btn_post'], $ind2, "\n");
+	echo $m->vs($mform['btn_post'], $ind2, "\n");
 echo $ind2 . '</div>'."\n";
 
 ActiveForm::end();
 
-if (! $isTabbed) {
-	echo '	</div>'."\n";
-	echo '</div>'."\n";
-}
+echo "\t</div>\n";
+echo "</div>\n";

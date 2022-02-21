@@ -9,7 +9,8 @@ echo '<div class="panel panel-default">'."\n";
 echo '	<div class="panel-heading">'."\n";
 echo '		<strong>'.$model->mod['name'].'</strong> '.Yii::t('ModHelperModule.base', 'module configuration')."\n";
 echo '	</div>'."\n";
-echo $widget::widget();
+if (isset($widget))
+	echo $widget::widget();
 echo '	<div class="panel-body">'."\n";
 echo '		' . $content . "\n";
 echo '	</div>'."\n";

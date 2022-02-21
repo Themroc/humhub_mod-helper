@@ -7,10 +7,10 @@ humhub.module('modhelper', function(module, require, $) {
 		var d= this.config.dep;
 		for (var x=0; x<d.length; x++) {
 			var src= $(d[x][0]);
+			var t= src.attr('type');
+			var ev= (t == "text" || t == "textarea") ? "keyup" : "change";
 			src.data("modhelper.tests", d[x][1]);
-			src.on("change", function () {
-				change(this);
-			});
+			src.on(ev, function () { change(this); });
 		}
 	};
 
